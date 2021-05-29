@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Tuple
 
 from connections import TripSegment, Connection
 from distribution import Distribution
