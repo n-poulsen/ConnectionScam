@@ -32,6 +32,9 @@ def connection_scan(df_connections: pd.DataFrame,
     latest_arrival_times: Dict[int, SortedJourneyList] = {}
     trip_taken: Dict[str, Connection] = {}
 
+    # A dictionary mapping trip ids to a list of connections in the trip that were found and can be taken
+    trip_connections: Dict[str, List[Connection]] = {}
+
     # Set the latest arrival time at the destination to the target time
     latest_arrival_times[destination] = SortedJourneyList([JourneyPointer(target_arrival, None, None, None)])
 
@@ -53,6 +56,14 @@ def connection_scan(df_connections: pd.DataFrame,
     for idx, row in df_connections.iterrows():
         # trip_id: str, src_id: int (long), dst_id: int (long), departure_time_dt: datetime, arrival_time_dt: datetime
         c = Connection(row.trip_id, row.route_desc, row.src_id, row.dst_id, row.departure_time_dt, row.arrival_time_dt)
+
+        # Update the connections that can be taken in the trip
+        c_trip_connections = trip_connections.get(c.trip_id)
+        if c_trip_connections is None:
+            c_trip_connections = [c]
+        else:
+            c_trip_connections = [c] + c_trip_connections
+        trip_connections[c.trip_id] = c_trip_connections
 
         trip_can_be_taken = trip_taken.get(c.trip_id)
         arr_stop_req_arrival_times = latest_arrival_times.get(c.arr_stop, SortedJourneyList([]))
@@ -87,7 +98,9 @@ def connection_scan(df_connections: pd.DataFrame,
             if c.dep_stop == source:
                 source_found_n_times += 1
                 if source_found_n_times >= min_times_to_find_source:
-                    paths_found = find_resulting_paths(source, destination, target_arrival, latest_arrival_times)
+                    paths_found = find_resulting_paths(
+                        source, destination, target_arrival, latest_arrival_times, trip_connections
+                    )
                     if len(paths_found) >= paths_to_find:
                         return paths_found
 
@@ -115,9 +128,11 @@ def connection_scan(df_connections: pd.DataFrame,
                 if train_stop == source:
                     source_found_n_times += 1
                     if source_found_n_times >= min_times_to_find_source:
-                        paths_found = find_resulting_paths(source, destination, target_arrival, latest_arrival_times)
+                        paths_found = find_resulting_paths(
+                            source, destination, target_arrival, latest_arrival_times, trip_connections
+                        )
                         if len(paths_found) >= paths_to_find:
                             return paths_found
 
-    paths_found = find_resulting_paths(source, destination, target_arrival, latest_arrival_times)
+    paths_found = find_resulting_paths(source, destination, target_arrival, latest_arrival_times, trip_connections)
     return paths_found
