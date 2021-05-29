@@ -56,5 +56,5 @@ print('Change times:')
 for r in results:
     print(f'Itinerary {i}:')
     for trip_seg, change_time in r.changes():
-        print(f'  {trip_seg}: {change_time.seconds//60}min')
+        print(f'  {trip_seg}: {change_time}min')
     print()

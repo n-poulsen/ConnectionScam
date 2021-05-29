@@ -28,6 +28,8 @@ class TripSegment(object):
         self.transport_type = enter_connection.transport_type
         self.enter_connection = enter_connection
         self.exit_connection = exit_connection
+        self.departure_time = enter_connection.dep_time
+        self.arrival_time = exit_connection.arr_time
 
     def __repr__(self):
         return f'<TripSegment ({self.trip_id}, {self.enter_connection.dep_stop} -> {self.exit_connection.arr_stop})>'
@@ -37,12 +39,6 @@ class TripSegment(object):
         s += f'  from {self.enter_connection.dep_stop} to {self.exit_connection.arr_stop}'
         s += f'  departure {self.enter_connection.dep_time}, arrival {self.exit_connection.arr_time}'
         return s
-
-    def entry_time(self) -> datetime:
-        return self.enter_connection.dep_time
-
-    def exit_time(self) -> datetime:
-        return self.exit_connection.arr_time
 
     def entry_stop(self) -> int:
         return self.enter_connection.dep_stop

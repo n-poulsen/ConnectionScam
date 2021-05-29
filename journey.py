@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Union, Optional, Iterable, Tuple
 
 from connections import Footpath, TripSegment
@@ -87,9 +87,9 @@ class Journey(object):
             else:
                 if not isinstance(self.paths[1], TripSegment):
                     raise ValueError(f'Two Footpaths in a row in a Journey: {self.paths}')
-                return self.paths[1].entry_time() - self.paths[0].walk_time
+                return self.paths[1].departure_time - self.paths[0].walk_time
         else:
-            return self.paths[0].entry_time()
+            return self.paths[0].departure_time
 
     def arrival_time(self) -> Optional[datetime]:
         if len(self.paths) == 0:
@@ -101,6 +101,6 @@ class Journey(object):
             else:
                 if not isinstance(self.paths[-2], TripSegment):
                     raise ValueError(f'Two Footpaths in a row in a Journey: {self.paths}')
-                return self.paths[-2].exit_time() + self.paths[-1].walk_time
+                return self.paths[-2].arrival_time + self.paths[-1].walk_time
         else:
-            return self.paths[-1].exit_time()
+            return self.paths[-1].arrival_time

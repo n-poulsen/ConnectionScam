@@ -79,12 +79,13 @@ def follow_path(journey_to_input: Journey,
                     if found_entry_connection and not found_exit_connection:
                         c_possible_paths: List[JourneyPointer] = journey_pointers.get(c.arr_stop, [])
                         if len(c_possible_paths) > 1:
-                            for alternative_exit in c_possible_paths:
+                            for alternative_journey_pointer in c_possible_paths:
 
-                                # Check that the alternative exit is not continuing on the same trip
-                                # and that it can be taken as the latest arrival time is not too early
-                                if (alternative_exit.enter_connection.trip_id != c.trip_id and
-                                        alternative_exit.enter_connection.dep_time > c.arr_time):
+                                # Check that the alternative exit is not continuing on the same trip and that it can be
+                                # taken as the latest arrival time is not too early (or is simply a footpath)
+                                if (alternative_journey_pointer.enter_connection is None or
+                                        (alternative_journey_pointer.enter_connection.trip_id != c.trip_id and
+                                         alternative_journey_pointer.enter_connection.dep_time > c.arr_time)):
                                     # Create the alternative route
                                     alternative_journey = Journey(
                                         new_journey_to_input.source(),
