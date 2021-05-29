@@ -38,6 +38,10 @@ def connection_scan(df_connections: pd.DataFrame,
     # Set the latest arrival time at the destination to the target time
     journey_pointers[destination] = SortedJourneyList([JourneyPointer(target_arrival, None, None, None)])
 
+    # Set the src and dst coordinates in case we don't find them (it won't happen)
+    src_coord = 0.0, 0.0
+    dst_coord = 0.0, 0.0
+
     # For all stops that we can walk to from the destination, update the latest possible arrival time
     destination_footpaths = footpaths.getrow(destination)
     for train_stop, walking_time_float in zip(destination_footpaths.indices, destination_footpaths.data):
@@ -54,8 +58,16 @@ def connection_scan(df_connections: pd.DataFrame,
 
     # Iterate over connections in the network
     for idx, row in df_connections.iterrows():
-        # trip_id: str, src_id: int (long), dst_id: int (long), departure_time_dt: datetime, arrival_time_dt: datetime
-        c = Connection(row.trip_id, row.route_desc, row.src_id, row.dst_id, row.departure_time_dt, row.arrival_time_dt)
+        route_desc = row.get('route_desc', 'Bus')
+        dep_lat, dep_lon, arr_lat, arr_lon = row.dep_lat, row.dep_lon, row.arr_lat, row.arr_lon
+        c = Connection(row.trip_id, route_desc, row.src_id, row.dst_id, dep_lat, dep_lon, arr_lat, arr_lon,
+                       row.departure_time_dt, row.arrival_time_dt)
+
+        # Check if we can hack the dst coordinates
+        if c.dep_stop == destination:
+            dst_coord = c.dep_lat, c.dep_lon
+        elif c.arr_stop == destination:
+            dst_coord = c.arr_lat, c.arr_lon
 
         # Update the connections that can be taken in the trip
         c_trip_connections = trip_connections.get(c.trip_id)
@@ -96,10 +108,12 @@ def connection_scan(df_connections: pd.DataFrame,
                 dep_stop_req_arrival_times.remove_earliest_arrival()
 
             if c.dep_stop == source:
+                src_coord = c.dep_lat, c.dep_lon
                 source_found_n_times += 1
                 if source_found_n_times >= min_times_to_find_source:
                     paths_found = find_resulting_paths(
-                        source, destination, target_arrival, time_per_connection, journey_pointers, trip_connections
+                        source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
+                        journey_pointers, trip_connections
                     )
                     if len(paths_found) >= paths_to_find:
                         return paths_found
@@ -126,15 +140,18 @@ def connection_scan(df_connections: pd.DataFrame,
                     neighbor_req_arrival_times.remove_earliest_arrival()
 
                 if train_stop == source:
+                    src_coord = c.dep_lat, c.dep_lon
                     source_found_n_times += 1
                     if source_found_n_times >= min_times_to_find_source:
                         paths_found = find_resulting_paths(
-                            source, destination, target_arrival, time_per_connection, journey_pointers, trip_connections
+                            source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
+                            journey_pointers, trip_connections
                         )
                         if len(paths_found) >= paths_to_find:
                             return paths_found
 
     paths_found = find_resulting_paths(
-        source, destination, target_arrival, time_per_connection, journey_pointers, trip_connections
+        source, destination, src_coord, dst_coord, target_arrival, time_per_connection, journey_pointers,
+        trip_connections
     )
     return paths_found

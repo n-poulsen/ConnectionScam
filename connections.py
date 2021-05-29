@@ -4,13 +4,25 @@ from datetime import datetime, timedelta
 class Connection(object):
     """ A connection in the graph """
 
-    def __init__(self, trip_id: str, ttype: str, dep_stop: int, arr_stop: int, dep_time: datetime, arr_time: datetime):
+    def __init__(self, trip_id: str, ttype: str, dep_stop: int, arr_stop: int, dep_lat: float, dep_lon: float,
+                 arr_lat: float, arr_lon: float, dep_time: datetime, arr_time: datetime):
+        # Trip information
+        self.trip_id = trip_id
         self.transport_type = ttype
+
+        # Departure and arrival stop indices
         self.dep_stop = dep_stop
         self.arr_stop = arr_stop
+
+        # Departure and arrival stop latitudes and longitudes
+        self.dep_lat = dep_lat
+        self.dep_lon = dep_lon
+        self.arr_lat = arr_lat
+        self.arr_lon = arr_lon
+
+        # Departure and arrival times
         self.dep_time = dep_time
         self.arr_time = arr_time
-        self.trip_id = trip_id
 
     def __repr__(self):
         return f'<Connection ({self.dep_stop} -> {self.dep_stop}), ({self.dep_time} -> {self.arr_time})>'
@@ -46,13 +58,28 @@ class TripSegment(object):
     def exit_stop(self) -> int:
         return self.exit_connection.arr_stop
 
+    def entry_stop_lat(self) -> float:
+        return self.enter_connection.dep_lat
+
+    def entry_stop_lon(self) -> float:
+        return self.enter_connection.dep_lon
+
+    def exit_stop_lat(self) -> float:
+        return self.exit_connection.arr_lat
+
+    def exit_stop_lon(self) -> float:
+        return self.exit_connection.arr_lon
+
 
 class Footpath(object):
     """ A footpath in the graph """
 
     def __init__(self, dep_stop: int, arr_stop: int, walk_time: timedelta):
+        # Departure and arrival stop indices
         self.dep_stop = dep_stop
         self.arr_stop = arr_stop
+
+        # Walk time between the stops
         self.walk_time = walk_time
 
     def __repr__(self):

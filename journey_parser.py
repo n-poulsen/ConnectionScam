@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 
 from connections import TripSegment, Connection
 from journey import Journey
@@ -41,6 +41,7 @@ def follow_path(journey_to_input: Journey,
 
             new_journey_to_input = Journey(
                 journey_to_input.source(),
+                journey_to_input.coord,
                 journey_to_input.paths.copy(),
                 journey_to_input.target_arrival_time(),
                 journey_to_input.min_co_time
@@ -89,6 +90,7 @@ def follow_path(journey_to_input: Journey,
                                     # Create the alternative route
                                     alternative_journey = Journey(
                                         new_journey_to_input.source(),
+                                        new_journey_to_input.coord,
                                         new_journey_to_input.paths.copy(),
                                         new_journey_to_input.target_arrival_time(),
                                         new_journey_to_input.min_co_time
@@ -116,6 +118,8 @@ def follow_path(journey_to_input: Journey,
 
 def find_resulting_paths(source: int,
                          destination: int,
+                         src_coord: Tuple[float, float],
+                         dst_coord: Tuple[float, float],
                          target_arrival: datetime,
                          min_connection_time,
                          journey_pointers: Dict[int, SortedJourneyList],
@@ -125,11 +129,14 @@ def find_resulting_paths(source: int,
 
     :param source: the stop from which the traveller starts
     :param destination: the stop where the traveller wants to go
+    :param src_coord: the coordinates of the stop where the traveller starts
+    :param dst_coord: the coordinates of the stop where the traveller wants to go
     :param target_arrival: the time at which the traveller needs to get there
     :param min_connection_time: the minimum amount of time needed to change trains
     :param journey_pointers: the journey pointers created by the Custom Connection Scan algorithm
     :param trip_connections: maps trip ids to the connections in the trip that can be taken
     :return: the possible Journeys to get from the source to the destination in time
     """
-    start_journey = Journey(source, [], target_arrival, min_connection_time)
+    coords = src_coord[0], dst_coord[1], src_coord[0], dst_coord[1]
+    start_journey = Journey(source, coords, [], target_arrival, min_connection_time)
     return follow_path(start_journey, destination, journey_pointers, trip_connections)

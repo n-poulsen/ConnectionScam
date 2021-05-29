@@ -8,10 +8,12 @@ class Journey(object):
 
     """ An list of Footpaths and TripSegments from a source to a destination """
 
-    def __init__(self, source: int, paths: List[Union[Footpath, TripSegment]], target_arrival_time,
-                 min_connection_time: int):
+    def __init__(self, source: int, coord: Tuple[float, float, float, float], paths: List[Union[Footpath, TripSegment]],
+                 target_arrival_time, min_connection_time: int):
         self.paths = paths
         self.src = source
+        self.coord = coord
+        self.src_lat, self.src_lon, self.dst_lat, self.dst_lon = coord
         self.target_arr_time = target_arrival_time
         self.min_co_time = min_connection_time
         self.dep_time = None
