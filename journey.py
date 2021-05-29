@@ -32,7 +32,7 @@ class Journey(object):
     def add_segment(self, path: Union[Footpath, TripSegment]):
         self.paths.append(path)
 
-    def changes(self) -> Iterable[Tuple[TripSegment, timedelta]]:
+    def changes(self) -> Iterable[Tuple[TripSegment, int]]:
         """ :return: an iterable outputting trip segments and the maximum delay that can occur """
         changes = []
         for i, segment in enumerate(self.paths):
@@ -40,11 +40,14 @@ class Journey(object):
                 # If this segment is the last one before arriving at the destination, the amount of delay that can occur
                 # is the amount of time between the arrival and the time the person needs to be at the destination
                 if i == len(self.paths) - 1:
-                    changes.append((segment, self.target_arrival_time() - segment.exit_connection.arr_time))
+                    max_delay = (self.target_arrival_time() - segment.exit_connection.arr_time).seconds // 60
+                    changes.append((segment, max_delay))
+
                 # Same if it is the segment before last but we need to walk
                 elif i == len(self.paths) - 2 and isinstance(self.paths[-1], Footpath):
                     arr_time_plus_walk_time = segment.exit_connection.arr_time + self.paths[-1].walk_time
-                    changes.append((segment, self.target_arrival_time() - arr_time_plus_walk_time))
+                    max_delay = (self.target_arrival_time() - arr_time_plus_walk_time).seconds // 60
+                    changes.append((segment, max_delay))
                 # Otherwise, it's the difference between the arrival time of this connection and the departure time of
                 # the next, minus the walking time
                 else:
@@ -54,7 +57,8 @@ class Journey(object):
                         next_stop_arr_time += self.paths[i + 1].walk_time
                         next_connection_index += 1
                     next_connection_dep = self.paths[next_connection_index].enter_connection.dep_time
-                    changes.append((segment, next_connection_dep - next_stop_arr_time))
+                    max_delay = (next_connection_dep - next_stop_arr_time).seconds//60
+                    changes.append((segment, max_delay))
 
         return changes
 
