@@ -32,9 +32,6 @@ def connection_scan(df_connections: pd.DataFrame,
     latest_arrival_times: Dict[int, SortedJourneyList] = {}
     trip_taken: Dict[str, Connection] = {}
 
-    # A dictionary mapping trip ids to a list of connections in the trip that were found and can be taken
-    trip_connections: Dict[str, List[Connection]] = {}
-
     # Set the latest arrival time at the destination to the target time
     latest_arrival_times[destination] = SortedJourneyList([JourneyPointer(target_arrival, None, None, None)])
 
@@ -56,14 +53,6 @@ def connection_scan(df_connections: pd.DataFrame,
     for idx, row in df_connections.iterrows():
         # trip_id: str, src_id: int (long), dst_id: int (long), departure_time_dt: datetime, arrival_time_dt: datetime
         c = Connection(row.trip_id, row.route_desc, row.src_id, row.dst_id, row.departure_time_dt, row.arrival_time_dt)
-
-        # Update the connections that can be taken in the trip
-        c_trip_connections = trip_connections.get(c.trip_id)
-        if c_trip_connections is None:
-            c_trip_connections = []
-        else:
-            c_trip_connections = [c] + c_trip_connections
-        trip_connections[c.trip_id] = c_trip_connections
 
         trip_can_be_taken = trip_taken.get(c.trip_id)
         arr_stop_req_arrival_times = latest_arrival_times.get(c.arr_stop, SortedJourneyList([]))
