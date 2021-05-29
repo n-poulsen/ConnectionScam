@@ -59,7 +59,10 @@ def connection_scan(df_connections: pd.DataFrame,
     # Iterate over connections in the network
     for idx, row in df_connections.iterrows():
         route_desc = row.get('route_desc', 'Bus')
-        dep_lat, dep_lon, arr_lat, arr_lon = row.dep_lat, row.dep_lon, row.arr_lat, row.arr_lon
+        dep_lat = row.get('departure_stop_lat', 0.0)
+        dep_lon = row.get('departure_stop_lon', 0.0)
+        arr_lat = row.get('arrival_stop_lat', 0.0)
+        arr_lon = row.get('arrival_stop_lon', 0.0)
         c = Connection(row.trip_id, route_desc, row.src_id, row.dst_id, dep_lat, dep_lon, arr_lat, arr_lon,
                        row.departure_time_dt, row.arrival_time_dt)
 
