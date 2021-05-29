@@ -116,6 +116,18 @@ def follow_path(journey_to_input: Journey,
     return paths_from_here
 
 
+def sort_journeys(journeys: List[Journey]) -> List[Journey]:
+    """
+    Sorts journeys based on the following criteria:
+        1. Lastest departure time first
+        2. Fewest number of connections first
+
+    :param journeys: the journeys to sort
+    :return: the sorted journeys
+    """
+    return sorted(journeys, key=lambda j: (j.departure_time(), len(j)), reverse=True)
+
+
 def find_resulting_paths(source: int,
                          destination: int,
                          src_coord: Tuple[float, float],
@@ -139,4 +151,4 @@ def find_resulting_paths(source: int,
     """
     coords = src_coord[0], dst_coord[1], src_coord[0], dst_coord[1]
     start_journey = Journey(source, coords, [], target_arrival, min_connection_time)
-    return follow_path(start_journey, destination, journey_pointers, trip_connections)
+    return sort_journeys(follow_path(start_journey, destination, journey_pointers, trip_connections))
