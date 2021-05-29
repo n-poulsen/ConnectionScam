@@ -7,8 +7,11 @@ from journey_pointer import JourneyPointer
 from sorted_lists import SortedJourneyList
 
 
-def follow_path(journey_to_input: Journey, destination: int, journey_pointers: Dict[int, SortedJourneyList],
-                trip_connections: Dict[str, List[Connection]], main_trip_id: Optional[Any] = None) -> List[Journey]:
+def follow_path(journey_to_input: Journey,
+                destination: int,
+                journey_pointers: Dict[int, SortedJourneyList],
+                trip_connections: Dict[str, List[Connection]],
+                main_trip_id: Optional[Any] = None) -> List[Journey]:
     """
     Given a journey and a destination, recursively follows journey pointers to arrive to the destination.
 
@@ -39,7 +42,8 @@ def follow_path(journey_to_input: Journey, destination: int, journey_pointers: D
             new_journey_to_input = Journey(
                 journey_to_input.source(),
                 journey_to_input.paths.copy(),
-                journey_to_input.target_arrival_time()
+                journey_to_input.target_arrival_time(),
+                journey_to_input.min_co_time
             )
 
             # Whether you can just follow a path to the end
@@ -85,7 +89,8 @@ def follow_path(journey_to_input: Journey, destination: int, journey_pointers: D
                                     alternative_journey = Journey(
                                         new_journey_to_input.source(),
                                         new_journey_to_input.paths.copy(),
-                                        new_journey_to_input.target_arrival_time()
+                                        new_journey_to_input.target_arrival_time(),
+                                        new_journey_to_input.min_co_time
                                     )
                                     # Get out of the trip at c
                                     alternative_trip_segment = TripSegment(p.enter_connection, c)
@@ -108,7 +113,10 @@ def follow_path(journey_to_input: Journey, destination: int, journey_pointers: D
     return paths_from_here
 
 
-def find_resulting_paths(source: int, destination: int, target_arrival: datetime,
+def find_resulting_paths(source: int,
+                         destination: int,
+                         target_arrival: datetime,
+                         min_connection_time,
                          journey_pointers: Dict[int, SortedJourneyList],
                          trip_connections: Dict[str, List[Connection]]) -> List[Journey]:
     """
@@ -117,9 +125,10 @@ def find_resulting_paths(source: int, destination: int, target_arrival: datetime
     :param source: the stop from which the traveller starts
     :param destination: the stop where the traveller wants to go
     :param target_arrival: the time at which the traveller needs to get there
+    :param min_connection_time: the minimum amount of time needed to change trains
     :param journey_pointers: the journey pointers created by the Custom Connection Scan algorithm
     :param trip_connections: maps trip ids to the connections in the trip that can be taken
     :return: the possible Journeys to get from the source to the destination in time
     """
-    start_journey = Journey(source, [], target_arrival)
+    start_journey = Journey(source, [], target_arrival, min_connection_time)
     return follow_path(start_journey, destination, journey_pointers, trip_connections)

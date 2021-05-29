@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Union, Optional, Iterable, Tuple
 
 from connections import Footpath, TripSegment
@@ -8,10 +8,12 @@ class Journey(object):
 
     """ An list of Footpaths and TripSegments from a source to a destination """
 
-    def __init__(self, source: int, paths: List[Union[Footpath, TripSegment]], target_arrival_time):
+    def __init__(self, source: int, paths: List[Union[Footpath, TripSegment]], target_arrival_time,
+                 min_connection_time: int):
         self.paths = paths
         self.src = source
         self.target_arr_time = target_arrival_time
+        self.min_co_time = min_connection_time
         self.dep_time = None
         self.arr_time = None
 
@@ -30,9 +32,31 @@ class Journey(object):
     def add_segment(self, path: Union[Footpath, TripSegment]):
         self.paths.append(path)
 
-    def changes(self) -> Iterable[Tuple[TripSegment, int]]:
+    def changes(self) -> Iterable[Tuple[TripSegment, timedelta]]:
         """ :return: an iterable outputting trip segments and the maximum delay that can occur """
-        raise NotImplementedError()
+        changes = []
+        for i, segment in enumerate(self.paths):
+            if isinstance(segment, TripSegment):
+                # If this segment is the last one before arriving at the destination, the amount of delay that can occur
+                # is the amount of time between the arrival and the time the person needs to be at the destination
+                if i == len(self.paths) - 1:
+                    changes.append((segment, self.target_arrival_time() - segment.exit_connection.arr_time))
+                # Same if it is the segment before last but we need to walk
+                elif i == len(self.paths) - 2 and isinstance(self.paths[-1], Footpath):
+                    arr_time_plus_walk_time = segment.exit_connection.arr_time + self.paths[-1].walk_time
+                    changes.append((segment, self.target_arrival_time() - arr_time_plus_walk_time))
+                # Otherwise, it's the difference between the arrival time of this connection and the departure time of
+                # the next, minus the walking time
+                else:
+                    next_stop_arr_time = segment.exit_connection.arr_time
+                    next_connection_index = i + 1
+                    if isinstance(self.paths[i + 1], Footpath):
+                        next_stop_arr_time += self.paths[i + 1].walk_time
+                        next_connection_index += 1
+                    next_connection_dep = self.paths[next_connection_index].enter_connection.dep_time
+                    changes.append((segment, next_connection_dep - next_stop_arr_time))
+
+        return changes
 
     def source(self) -> Optional[int]:
         return self.src

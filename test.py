@@ -47,5 +47,14 @@ results = connection_scan(df_connections, footpaths, source, destination, target
                           time_per_connection, paths_to_find, journeys_per_stop)
 
 print('Results')
+for i, r in enumerate(results):
+    print(f'Itinerary {i}:')
+    print(f'  {r}')
+    print()
+
+print('Change times:')
 for r in results:
-    print(r)
+    print(f'Itinerary {i}:')
+    for trip_seg, change_time in r.changes():
+        print(f'  {trip_seg}: {change_time.seconds//60}min')
+    print()

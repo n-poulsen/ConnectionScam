@@ -29,14 +29,14 @@ def connection_scan(df_connections: pd.DataFrame,
     """
     source_found_n_times = 0
 
-    latest_arrival_times: Dict[int, SortedJourneyList] = {}
+    journey_pointers: Dict[int, SortedJourneyList] = {}
     trip_taken: Dict[str, Connection] = {}
 
     # A dictionary mapping trip ids to a list of connections in the trip that were found and can be taken
     trip_connections: Dict[str, List[Connection]] = {}
 
     # Set the latest arrival time at the destination to the target time
-    latest_arrival_times[destination] = SortedJourneyList([JourneyPointer(target_arrival, None, None, None)])
+    journey_pointers[destination] = SortedJourneyList([JourneyPointer(target_arrival, None, None, None)])
 
     # For all stops that we can walk to from the destination, update the latest possible arrival time
     destination_footpaths = footpaths.getrow(destination)
@@ -50,7 +50,7 @@ def connection_scan(df_connections: pd.DataFrame,
         latest_arrival = target_arrival - walk_time
 
         # Add the journey pointer to the latest arrival times for the train stop
-        latest_arrival_times[train_stop] = SortedJourneyList([JourneyPointer(latest_arrival, None, None, path)])
+        journey_pointers[train_stop] = SortedJourneyList([JourneyPointer(latest_arrival, None, None, path)])
 
     # Iterate over connections in the network
     for idx, row in df_connections.iterrows():
@@ -66,7 +66,7 @@ def connection_scan(df_connections: pd.DataFrame,
         trip_connections[c.trip_id] = c_trip_connections
 
         trip_can_be_taken = trip_taken.get(c.trip_id)
-        arr_stop_req_arrival_times = latest_arrival_times.get(c.arr_stop, SortedJourneyList([]))
+        arr_stop_req_arrival_times = journey_pointers.get(c.arr_stop, SortedJourneyList([]))
 
         # A connection can be taken if:
         #   * the connection's trip can be taken
@@ -82,10 +82,10 @@ def connection_scan(df_connections: pd.DataFrame,
 
             # Update the latest arrival time for c.dep_stop, as arriving at c.dep_stop allows you to arrive to
             # c.arr_stop before you need to be there
-            dep_stop_req_arrival_times = latest_arrival_times.get(c.dep_stop)
+            dep_stop_req_arrival_times = journey_pointers.get(c.dep_stop)
             if dep_stop_req_arrival_times is None:
                 dep_stop_req_arrival_times = SortedJourneyList([])
-                latest_arrival_times[c.dep_stop] = dep_stop_req_arrival_times
+                journey_pointers[c.dep_stop] = dep_stop_req_arrival_times
 
             dep_stop_latest_arr_time = c.dep_time - min_to_timedelta(time_per_connection)
             dep_stop_req_arrival_times.append(
@@ -99,7 +99,7 @@ def connection_scan(df_connections: pd.DataFrame,
                 source_found_n_times += 1
                 if source_found_n_times >= min_times_to_find_source:
                     paths_found = find_resulting_paths(
-                        source, destination, target_arrival, latest_arrival_times, trip_connections
+                        source, destination, target_arrival, time_per_connection, journey_pointers, trip_connections
                     )
                     if len(paths_found) >= paths_to_find:
                         return paths_found
@@ -109,10 +109,10 @@ def connection_scan(df_connections: pd.DataFrame,
             neighbor_stops = footpaths.getrow(c.dep_stop)
             for train_stop, walking_time_float in zip(neighbor_stops.indices, neighbor_stops.data):
 
-                neighbor_req_arrival_times = latest_arrival_times.get(train_stop)
+                neighbor_req_arrival_times = journey_pointers.get(train_stop)
                 if neighbor_req_arrival_times is None:
                     neighbor_req_arrival_times = SortedJourneyList([])
-                    latest_arrival_times[train_stop] = neighbor_req_arrival_times
+                    journey_pointers[train_stop] = neighbor_req_arrival_times
 
                 walk_time = min_to_timedelta(walking_time_float + time_per_connection)
                 path = Footpath(train_stop, c.dep_stop, walk_time)
@@ -129,10 +129,12 @@ def connection_scan(df_connections: pd.DataFrame,
                     source_found_n_times += 1
                     if source_found_n_times >= min_times_to_find_source:
                         paths_found = find_resulting_paths(
-                            source, destination, target_arrival, latest_arrival_times, trip_connections
+                            source, destination, target_arrival, time_per_connection, journey_pointers, trip_connections
                         )
                         if len(paths_found) >= paths_to_find:
                             return paths_found
 
-    paths_found = find_resulting_paths(source, destination, target_arrival, latest_arrival_times, trip_connections)
+    paths_found = find_resulting_paths(
+        source, destination, target_arrival, time_per_connection, journey_pointers, trip_connections
+    )
     return paths_found
