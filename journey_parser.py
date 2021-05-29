@@ -125,7 +125,7 @@ def sort_journeys(journeys: List[Journey]) -> List[Journey]:
     :param journeys: the journeys to sort
     :return: the sorted journeys
     """
-    return sorted(journeys, key=lambda j: (j.departure_time(), len(j)), reverse=True)
+    return sorted(journeys, key=lambda j: (j.departure_time(), -len(j)), reverse=True)
 
 
 def find_resulting_paths(source: int,
