@@ -6,6 +6,7 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 
 from connections import Connection, Footpath
+from distribution import Distribution
 from journey_pointer import JourneyPointer
 from journey_parser import find_resulting_paths
 from sorted_lists import SortedJourneyList
@@ -23,11 +24,13 @@ def min_to_timedelta(minutes: float) -> timedelta:
 
 def connection_scan(df_connections: pd.DataFrame,
                     footpaths: csr_matrix,
+                    delay_distributions: Dict[int, Distribution],
                     source: int,
                     destination: int,
                     target_arrival: datetime,
                     time_per_connection: float,
                     journeys_to_find: int,
+                    min_chance_of_success: float,
                     journeys_per_stop: int = 2,
                     min_times_to_find_source: int = 3):
     """
@@ -46,8 +49,10 @@ def connection_scan(df_connections: pd.DataFrame,
             * 'arrival_stop_lon': float. the latitude of the arrival stop
             * 'trip_id': Any. the ID of the trip to which this connection belongs
             * 'route_desc': str. the mode of transport of the trip (e.g., 'bus', 'train', ...)
+            * 'distribution_id': int. The id of the distribution of delays for this distribution
     :param footpaths: A sparse matrix containing the footpaths in the map. Row i contains the stops reachable from stop
         i by foot. There should be no self-loops (i <-> i).
+    :param delay_distributions: maps distribution delay groups to their distributions
     :param source: The index of the stop from which the user wants to depart.
     :param destination: The index of the stop where the user wants to go.
     :param target_arrival: The time at which the user wants to arrive to their target destination.
@@ -55,6 +60,7 @@ def connection_scan(df_connections: pd.DataFrame,
         at a stop (i.e., the amount of time it takes to change tracks at a train station).
     :param journeys_to_find: The minimum number of possible Journeys to find (if possible, as if there are not enough edges
         in the DataFrame, fewer journeys will be returned)
+    :param min_chance_of_success: the minimum probability of success a journey should have to be kept
     :param journeys_per_stop: The maximum number of JourneyPointers to store at each stop.
     :param min_times_to_find_source: The minimum number of times the source must be found before returning the Journeys
         (if possible, as if there are not enough edges in the DataFrame, it will be found fewer times).
@@ -96,8 +102,11 @@ def connection_scan(df_connections: pd.DataFrame,
         dep_lon = row.get('departure_stop_lon', 0.0)
         arr_lat = row.get('arrival_stop_lat', 0.0)
         arr_lon = row.get('arrival_stop_lon', 0.0)
+        dep_time = row.get('departure_time_dt')
+        arr_time = row.get('arrival_time_dt')
+        distribution_id = row.get('distribution_id', 0)
         c = Connection(row.trip_id, route_desc, row.src_id, row.dst_id, dep_lat, dep_lon, arr_lat, arr_lon,
-                       row.departure_time_dt, row.arrival_time_dt)
+                       dep_time, arr_time, distribution_id)
 
         # Check if we can hack the dst coordinates
         if c.dep_stop == destination:
@@ -149,7 +158,7 @@ def connection_scan(df_connections: pd.DataFrame,
                 if source_found_n_times >= min_times_to_find_source:
                     paths_found = find_resulting_paths(
                         source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
-                        journey_pointers, trip_connections
+                        journey_pointers, trip_connections, delay_distributions, min_chance_of_success
                     )
                     if len(paths_found) >= journeys_to_find:
                         return paths_found
@@ -181,13 +190,13 @@ def connection_scan(df_connections: pd.DataFrame,
                     if source_found_n_times >= min_times_to_find_source:
                         paths_found = find_resulting_paths(
                             source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
-                            journey_pointers, trip_connections
+                            journey_pointers, trip_connections, delay_distributions, min_chance_of_success
                         )
                         if len(paths_found) >= journeys_to_find:
                             return paths_found
 
     paths_found = find_resulting_paths(
         source, destination, src_coord, dst_coord, target_arrival, time_per_connection, journey_pointers,
-        trip_connections
+        trip_connections, delay_distributions, min_chance_of_success
     )
     return paths_found

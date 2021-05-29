@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import List, Union, Optional, Iterable, Tuple
+from typing import List, Union, Optional, Iterable, Tuple, Dict
 
 from connections import Footpath, TripSegment
+from distribution import Distribution
 
 
 class Journey(object):
@@ -149,3 +150,16 @@ class Journey(object):
         """
         time_diff = (self.arrival_time() - self.departure_time()).seconds
         return (time_diff // 60) + int(time_diff % 60 > 0)
+
+    def success_probability(self, delay_distributions: Dict[int, Distribution]) -> float:
+        """
+        :param delay_distributions: maps distribution delay groups to their distributions
+        :return: the success probability of this Journey, based on delays
+        """
+        success_probability = 1.0
+        for trip_segment, max_delay in self.changes():
+            trip_delay_dist = delay_distributions.get(trip_segment.delay_distribution_id())
+            connection_success_probability = trip_delay_dist.cdf(max_delay)
+            success_probability *= connection_success_probability
+
+        return success_probability

@@ -16,10 +16,11 @@ class Connection(object):
     - :class:`float` arr_lon --> The longitude of the arrival stop of the connection
     - :class:`datetime.datetime` dep_time --> the time at which the connection leaves the departure stop
     - :class:`datetime.datetime` arr_time --> the time at which the connection arrives to the arrival stop
+    - :class:`int` distribution_id --> the delay distribution id for this connection
     """
 
     def __init__(self, trip_id: str, ttype: str, dep_stop: int, arr_stop: int, dep_lat: float, dep_lon: float,
-                 arr_lat: float, arr_lon: float, dep_time: datetime, arr_time: datetime):
+                 arr_lat: float, arr_lon: float, dep_time: datetime, arr_time: datetime, distribution_id: int):
         # Trip information
         self.trip_id = trip_id
         self.transport_type = ttype
@@ -37,6 +38,9 @@ class Connection(object):
         # Departure and arrival times
         self.dep_time = dep_time
         self.arr_time = arr_time
+
+        # Delay distribution group
+        self.distribution_id = distribution_id
 
     def __repr__(self):
         return f'<Connection ({self.dep_stop} -> {self.dep_stop}), ({self.dep_time} -> {self.arr_time})>'
@@ -112,6 +116,12 @@ class TripSegment(object):
         :return: the longitude of the stop at which the user exits the trip
         """
         return self.exit_connection.arr_lon
+
+    def delay_distribution_id(self) -> int:
+        """
+        :return: the delay distribution id for the arrival connection of the trip segment
+        """
+        return self.exit_connection.distribution_id
 
 
 class Footpath(object):

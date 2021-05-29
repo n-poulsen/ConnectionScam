@@ -2,49 +2,65 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 
 from connections import TripSegment, Connection
+from distribution import Distribution
 from journey import Journey
 from journey_pointer import JourneyPointer
 from sorted_lists import SortedJourneyList
 
 
-def follow_path(journey_to_input: Journey,
+def follow_path(journey_so_far: Journey,
                 destination: int,
                 journey_pointers: Dict[int, SortedJourneyList],
                 trip_connections: Dict[str, List[Connection]],
-                main_trip_id: Optional[Any] = None) -> List[Journey]:
+                delay_distributions: Dict[int, Distribution],
+                min_chance_of_success: float) -> List[Journey]:
     """
     Given a Journey and a destination, recursively follows JourneyPointers to arrive to the destination.
 
-    :param journey_to_input: the journey followed to arrive to the current stop
+    :param journey_so_far: the journey followed to arrive to the current stop
     :param destination: the stop where the traveller wants to go
     :param journey_pointers: the journey pointers created by the Custom Connection Scan algorithm
-    :param trip_connections: maps trip ids to the connections in the trip that can be taken
-    :param main_trip_id: the id of a trip that can't be taken from this stop (as we are at an alternative path)
+    :param trip_connections: maps trip_ids to the connections in the trip that can be taken
+    :param delay_distributions: maps distribution delay groups to their distributions
+    :param min_chance_of_success: the minimum probability of success this journey should have to be kept
     :return: the possible Journeys to get from the source to the destination in time
     """
-    input_stop = journey_to_input.destination()
-    time_at_input = journey_to_input.arrival_time()
-
-    if len(journey_to_input) > 8:
+    if journey_so_far.success_probability(delay_distributions) < min_chance_of_success:
         return []
-    if input_stop == destination:
-        return [journey_to_input]
+
+    starting_stop = journey_so_far.destination()
+    arrival_time_at_starting_stop = journey_so_far.arrival_time()
+
+    # If the journey was too long, return
+    if len(journey_so_far) > 8:
+        return []
+
+    # If you've arrived at the destination, return
+    if starting_stop == destination:
+        return [journey_so_far]
+
+    previous_trips_taken = [
+        trip_segment.trip_id
+        for trip_segment in journey_so_far.paths
+        if isinstance(trip_segment, TripSegment)
+    ]
 
     paths_from_here = []
-    possible_paths = journey_pointers.get(input_stop, [])
+    possible_paths = journey_pointers.get(starting_stop, [])
     for p in possible_paths:
         # Compute the time you need to arrive at the stop to take this path
         latest_arrival_time = p.arrival_time
 
-        # Check that you're at the input early enough to make it
-        if time_at_input is None or time_at_input <= latest_arrival_time:
+        # Check that you're at the input early enough to make it, and that you're not getting onto a trip you got off of
+        if ((arrival_time_at_starting_stop is None or arrival_time_at_starting_stop <= latest_arrival_time) and
+                (p.enter_connection is None or p.enter_connection.trip_id not in previous_trips_taken)):
 
             new_journey_to_input = Journey(
-                journey_to_input.source(),
-                journey_to_input.coord,
-                journey_to_input.paths.copy(),
-                journey_to_input.target_arrival_time(),
-                journey_to_input.min_co_time
+                journey_so_far.source(),
+                journey_so_far.coord,
+                journey_so_far.paths.copy(),
+                journey_so_far.target_arrival_time(),
+                journey_so_far.min_co_time
             )
 
             # Whether you can just follow a path to the end
@@ -59,9 +75,8 @@ def follow_path(journey_to_input: Journey,
                     paths_from_here += [new_journey_to_input]
                     walked_to_end = True
 
-            # If you didn't walk to the end and you're not in an alternative route looking at the main trip you just
-            # left, continue looking
-            if not walked_to_end and p.enter_connection.trip_id != main_trip_id:
+            # If you didn't walk to the end, check if you can take alternative routes or how to continue your journey
+            if not walked_to_end and p.enter_connection is not None:
                 connections = trip_connections.get(p.enter_connection.trip_id)
 
                 if connections is None:
@@ -99,19 +114,19 @@ def follow_path(journey_to_input: Journey,
                                     alternative_trip_segment = TripSegment(p.enter_connection, c)
                                     alternative_journey.add_segment(alternative_trip_segment)
                                     # Take the alternative route
-                                    next_stop_ends = follow_path(alternative_journey, destination, journey_pointers,
-                                                                 trip_connections, main_trip_id=c.trip_id)
+                                    next_stop_ends = follow_path(
+                                        alternative_journey, destination, journey_pointers, trip_connections,
+                                        delay_distributions, min_chance_of_success
+                                    )
                                     paths_from_here += next_stop_ends
                 # Take the normal connection to the next stop
                 trip_segment = TripSegment(p.enter_connection, p.exit_connection)
                 new_journey_to_input.add_segment(trip_segment)
-
-                if trip_segment.exit_connection.arr_stop == destination:
-                    paths_from_here += [new_journey_to_input]
-                    break
-
                 # Follow the path from the next stop
-                next_stop_ends = follow_path(new_journey_to_input, destination, journey_pointers, trip_connections)
+                next_stop_ends = follow_path(
+                    new_journey_to_input, destination, journey_pointers, trip_connections, delay_distributions,
+                    min_chance_of_success
+                )
                 paths_from_here += next_stop_ends
     return paths_from_here
 
@@ -135,7 +150,9 @@ def find_resulting_paths(source: int,
                          target_arrival: datetime,
                          min_connection_time,
                          journey_pointers: Dict[int, SortedJourneyList],
-                         trip_connections: Dict[str, List[Connection]]) -> List[Journey]:
+                         trip_connections: Dict[str, List[Connection]],
+                         delay_distributions: Dict[int, Distribution],
+                         min_chance_of_success: float) -> List[Journey]:
     """
     Recursively travels through the journey pointers to find paths between the source and the destination.
 
@@ -147,8 +164,12 @@ def find_resulting_paths(source: int,
     :param min_connection_time: the minimum amount of time needed to change trains
     :param journey_pointers: the journey pointers created by the Custom Connection Scan algorithm
     :param trip_connections: maps trip ids to the connections in the trip that can be taken
+    :param delay_distributions: maps distribution delay groups to their distributions
+    :param min_chance_of_success: the minimum probability of success a journey should have to be kept
     :return: the possible Journeys to get from the source to the destination in time
     """
     coords = src_coord[0], dst_coord[1], src_coord[0], dst_coord[1]
     start_journey = Journey(source, coords, [], target_arrival, min_connection_time)
-    return sort_journeys(follow_path(start_journey, destination, journey_pointers, trip_connections))
+    return sort_journeys(follow_path(
+        start_journey, destination, journey_pointers, trip_connections, delay_distributions, min_chance_of_success
+    ))
