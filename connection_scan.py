@@ -11,7 +11,13 @@ from journey_parser import find_resulting_paths
 from sorted_lists import SortedJourneyList
 
 
-def min_to_timedelta(minutes: float):
+def min_to_timedelta(minutes: float) -> timedelta:
+    """
+    Creates a timedelta object from a ceiled number of minutes.
+
+    :param minutes: the number of minutes to ceil and transform to a timedelta object
+    :return: the number of minutes, ceiled to the nearest integer
+    """
     return timedelta(minutes=math.ceil(minutes))
 
 
@@ -21,11 +27,38 @@ def connection_scan(df_connections: pd.DataFrame,
                     destination: int,
                     target_arrival: datetime,
                     time_per_connection: float,
-                    paths_to_find: int,
+                    journeys_to_find: int,
                     journeys_per_stop: int = 2,
                     min_times_to_find_source: int = 3):
     """
-    Custom Connection Scan Algorithm
+    Custom Connection Scan Algorithm, which operates in reverse order.
+
+    :param df_connections: Each row represents a connection (an edge in the graph). The rows are sorted in descending
+        order with respect to the departure times of the connections. It should contain no edges for which the arrival
+        time is later than the user's target arrival time. Should contain the columns:
+            * 'src_id': int. the index of the departure stop
+            * 'dst_id': int. the index of the arrival stop
+            * 'departure_time_dt': datetime.datetime. the scheduled departure time
+            * 'arrival_time_dt': datetime.datetime. the scheduled arrival time
+            * 'departure_stop_lat': float. the longitude of the departure stop
+            * 'departure_stop_lon': float. the latitude of the departure stop
+            * 'arrival_stop_lat': float. the longitude of the arrival stop
+            * 'arrival_stop_lon': float. the latitude of the arrival stop
+            * 'trip_id': Any. the ID of the trip to which this connection belongs
+            * 'route_desc': str. the mode of transport of the trip (e.g., 'bus', 'train', ...)
+    :param footpaths: A sparse matrix containing the footpaths in the map. Row i contains the stops reachable from stop
+        i by foot. There should be no self-loops (i <-> i).
+    :param source: The index of the stop from which the user wants to depart.
+    :param destination: The index of the stop where the user wants to go.
+    :param target_arrival: The time at which the user wants to arrive to their target destination.
+    :param time_per_connection: The amount of time (in minutes) it takes for the user to change transportation vehicles
+        at a stop (i.e., the amount of time it takes to change tracks at a train station).
+    :param journeys_to_find: The minimum number of possible Journeys to find (if possible, as if there are not enough edges
+        in the DataFrame, fewer journeys will be returned)
+    :param journeys_per_stop: The maximum number of JourneyPointers to store at each stop.
+    :param min_times_to_find_source: The minimum number of times the source must be found before returning the Journeys
+        (if possible, as if there are not enough edges in the DataFrame, it will be found fewer times).
+    :return: A list containing all Journeys found.
     """
     source_found_n_times = 0
 
@@ -118,7 +151,7 @@ def connection_scan(df_connections: pd.DataFrame,
                         source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
                         journey_pointers, trip_connections
                     )
-                    if len(paths_found) >= paths_to_find:
+                    if len(paths_found) >= journeys_to_find:
                         return paths_found
 
             # Iterate over stops we can walk to from the departure, as arriving there and walking to c.dep_stop can get
@@ -150,7 +183,7 @@ def connection_scan(df_connections: pd.DataFrame,
                             source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
                             journey_pointers, trip_connections
                         )
-                        if len(paths_found) >= paths_to_find:
+                        if len(paths_found) >= journeys_to_find:
                             return paths_found
 
     paths_found = find_resulting_paths(

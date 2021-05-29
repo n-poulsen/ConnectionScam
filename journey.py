@@ -5,8 +5,23 @@ from connections import Footpath, TripSegment
 
 
 class Journey(object):
+    """
+    A journey composed of Footpaths and TripSegments from a source to a destination
 
-    """ An list of Footpaths and TripSegments from a source to a destination """
+    Attributes:
+    - :class:`List[Union[Footpath, TripSegment]]` paths --> The consecutive paths leading from the source to the
+        destination
+    - :class:`int` src --> The index of the train stop from which the journey starts
+    - :class:`int` dst --> The index of the train stop where the journey ends
+    - :class:`Tuple[float, float, float, float]` coord --> (src_lat, src_lon, dst_lat, dst_lon)
+    - :class:`float` src_lat --> The latitude of the train stop from which the journey starts
+    - :class:`float` src_lon --> The longitude of the train stop from which the journey starts
+    - :class:`float` dst_lat --> The latitude of the train stop where the journey ends
+    - :class:`float` dst_lon --> The longitude of the train stop where the journey ends
+    - :class:`datetime.datetime` target_arr_time --> The latest time at which the passenger wanted to get to the end
+    - :class:`float` dst_lon --> The longitude of the train stop where the journey ends
+    - :class:`int` min_co_time --> The minimum amount of time, in minutes, to "change tracks" at a stop
+    """
 
     def __init__(self, source: int, coord: Tuple[float, float, float, float], paths: List[Union[Footpath, TripSegment]],
                  target_arrival_time, min_connection_time: int):
@@ -16,8 +31,6 @@ class Journey(object):
         self.src_lat, self.src_lon, self.dst_lat, self.dst_lon = coord
         self.target_arr_time = target_arrival_time
         self.min_co_time = min_connection_time
-        self.dep_time = None
-        self.arr_time = None
 
     def __len__(self):
         return len(self.paths)
@@ -32,10 +45,18 @@ class Journey(object):
         return s
 
     def add_segment(self, path: Union[Footpath, TripSegment]):
+        """
+        Adds a segment to the current journey
+
+        :param path: the segment to add
+        """
         self.paths.append(path)
 
     def changes(self) -> Iterable[Tuple[TripSegment, int]]:
-        """ :return: an iterable outputting trip segments and the maximum delay that can occur """
+        """
+        :return: an iterable outputting trip segments and the maximum delay that can occur during the journey for the
+        passenger not to miss the next trip.
+        """
         changes = []
         for i, segment in enumerate(self.paths):
             if isinstance(segment, TripSegment):
@@ -64,10 +85,16 @@ class Journey(object):
 
         return changes
 
-    def source(self) -> Optional[int]:
+    def source(self) -> int:
+        """
+        :return: the starting point of the journey
+        """
         return self.src
 
-    def destination(self) -> Optional[int]:
+    def destination(self) -> int:
+        """
+        :return: the destination of the journey
+        """
         if len(self.paths) == 0:
             return self.src
 
@@ -77,9 +104,15 @@ class Journey(object):
             return self.paths[-1].exit_stop()
 
     def target_arrival_time(self):
+        """
+        :return: the time at which the passenger wants to arrive at the destination
+        """
         return self.target_arr_time
 
     def departure_time(self) -> Optional[datetime]:
+        """
+        :return: the time at which the passenger needs to leave the starting point
+        """
         if len(self.paths) == 0:
             return None
 
@@ -94,6 +127,9 @@ class Journey(object):
             return self.paths[0].departure_time
 
     def arrival_time(self) -> Optional[datetime]:
+        """
+        :return: the time at which the passenger arrives at the destination
+        """
         if len(self.paths) == 0:
             return None
 
@@ -106,3 +142,10 @@ class Journey(object):
                 return self.paths[-2].arrival_time + self.paths[-1].walk_time
         else:
             return self.paths[-1].arrival_time
+
+    def duration(self) -> int:
+        """
+        :return: The journey duration, in minutes
+        """
+        time_diff = (self.arrival_time() - self.departure_time()).seconds
+        return (time_diff // 60) + int(time_diff % 60 > 0)

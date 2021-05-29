@@ -13,7 +13,7 @@ def follow_path(journey_to_input: Journey,
                 trip_connections: Dict[str, List[Connection]],
                 main_trip_id: Optional[Any] = None) -> List[Journey]:
     """
-    Given a journey and a destination, recursively follows journey pointers to arrive to the destination.
+    Given a Journey and a destination, recursively follows JourneyPointers to arrive to the destination.
 
     :param journey_to_input: the journey followed to arrive to the current stop
     :param destination: the stop where the traveller wants to go

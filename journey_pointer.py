@@ -9,7 +9,6 @@ class JourneyPointer(object):
     Pointers used to reconstruct the journey from the source to the sink
 
     Attributes:
-
     - :class:`datetime` arrival_time --> The latest time at which someone can
         arrive at the stop to make the connection.
     - :class:`Optional[Connection]` enter_connection --> If none, then this
