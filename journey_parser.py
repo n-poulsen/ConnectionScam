@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from connections import TripSegment, Connection
 from distribution import Distribution
@@ -21,13 +21,13 @@ def follow_path(journey_so_far: Journey,
     Given a Journey and a destination, recursively follows JourneyPointers to arrive to the destination.
 
     :param journey_so_far: the journey followed to arrive to the current stop
-    :param previous_trips_taken: TODO
+    :param previous_trips_taken: a list containing the ids of the trips taken so far in the journey
     :param destination: the stop where the traveller wants to go
     :param journey_pointers: the journey pointers created by the Custom Connection Scan algorithm
     :param trip_connections: maps trip_ids to the connections in the trip that can be taken
     :param min_chance_of_success: the minimum probability of success this journey should have to be kept
-    :param min_connection_time: TODO
-    :param max_recursion_depth: TODO
+    :param min_connection_time: the minimum amount needed to switch trains at a station
+    :param max_recursion_depth: the maximum number of segments that can be in a journey
     :return: the possible Journeys to get from the source to the destination in time
     """
     if journey_so_far.success_probability() < min_chance_of_success:
@@ -128,8 +128,6 @@ def follow_path(journey_so_far: Journey,
                                     alt_previous_trips_taken = previous_trips_taken
                                     # take a train if you need to
                                     if alt_journey_pointer.enter_connection is not None:
-                                        # TODO: this forces us to follow the alternative journey to the end ->
-                                        # TODO: faster to compute but will remove possibilities
                                         alt_train_segment = TripSegment(
                                             alt_journey_pointer.enter_connection,
                                             alt_journey_pointer.exit_connection
@@ -196,8 +194,6 @@ def sort_journeys(journeys: List[Journey]) -> List[Journey]:
 
 def find_resulting_paths(source: int,
                          destination: int,
-                         src_coord: Tuple[float, float],
-                         dst_coord: Tuple[float, float],
                          target_arrival: datetime,
                          min_connection_time: int,
                          journey_pointers: Dict[int, SortedJourneyList],
@@ -210,23 +206,19 @@ def find_resulting_paths(source: int,
 
     :param source: the stop from which the traveller starts
     :param destination: the stop where the traveller wants to go
-    :param src_coord: the coordinates of the stop where the traveller starts
-    :param dst_coord: the coordinates of the stop where the traveller wants to go
     :param target_arrival: the time at which the traveller needs to get there
     :param min_connection_time: the minimum amount of time needed to change trains
     :param journey_pointers: the journey pointers created by the Custom Connection Scan algorithm
     :param trip_connections: maps trip ids to the connections in the trip that can be taken
     :param delay_distributions: maps distribution delay groups to their distributions
     :param min_chance_of_success: the minimum probability of success a journey should have to be kept
-    :param max_recursion_depth: TODO
+    :param max_recursion_depth: the maximum number of segments that can be in a journey
     :return: the possible Journeys to get from the source to the destination in time
     """
-    coords = src_coord[0], src_coord[1], dst_coord[0], dst_coord[1]
     min_co_time = timedelta(minutes=math.ceil(min_connection_time))
     start_journey = Journey(
         source,
         destination,
-        coords,
         [],
         target_arrival,
         min_co_time,

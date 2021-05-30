@@ -7,28 +7,27 @@ from distribution import Distribution
 
 class Journey(object):
     """
-    A journey composed of Footpaths and TripSegments from a source to a destination
+    A journey composed of Footpaths and TripSegments from a source to a destination.
+
+    Immutable. It's parameters should never be modified as some of them are computed at initialization. To create a new
+    Journey from this one, use the add_segment_to_journey(*) method, which efficiently does so.
 
     Attributes:
-    - :class:`List[Union[Footpath, TripSegment]]` paths --> The consecutive paths leading from the source to the
-        destination
+    - :class:`List[Union[Footpath, TripSegment]]` journey_segments --> The consecutive journey segments leading from the
+        source to the destination
     - :class:`int` departure_stop --> The index of the train stop from which the journey starts
     - :class:`int` arrival_stop --> The index of the train stop where the journey will eventually end
     - :class:`int` current_arrival_stop --> The index of the train stop where the journey currently ends
-    - :class:`Tuple[float, float, float, float]` coord --> (src_lat, src_lon, dst_lat, dst_lon)
-    - :class:`float` src_lat --> The latitude of the train stop from which the journey starts
-    - :class:`float` src_lon --> The longitude of the train stop from which the journey starts
-    - :class:`float` dst_lat --> The latitude of the train stop where the journey ends
-    - :class:`float` dst_lon --> The longitude of the train stop where the journey ends
+    - :class:`bool` reached_destination --> Whether the arrival was reached (arrival_stop == current_arrival_stop)
+    - :class:`bool` reached_destination --> Whether the arrival was reached (arrival_stop == current_arrival_stop)
     - :class:`datetime.datetime` target_arr_time --> The latest time at which the passenger wanted to get to the end
-    - :class:`float` dst_lon --> The longitude of the train stop where the journey ends
-    - :class:`int` min_co_time --> The minimum amount of time, in minutes, to "change tracks" at a stop
+    - :class:`int` min_connection_time --> The minimum amount of time, in minutes, to "change tracks" at a stop
+    - :class:`Dict[int, Distribution]` delay_distributions --> Distribution ids of trips to their delay distributions
     """
 
     def __init__(self,
                  departure_stop: int,
                  arrival_stop: int,
-                 coord: Tuple[float, float, float, float],
                  journey_segments: List[Union[Footpath, TripSegment]],
                  target_arrival_time: datetime,
                  min_connection_time: timedelta,
@@ -63,10 +62,6 @@ class Journey(object):
         # The delay distributions for different types of trips
         self.delay_distributions = delay_distributions
 
-        # Coordinates
-        self.coord = coord
-        self.src_lat, self.src_lon, self.dst_lat, self.dst_lon = coord
-
         # Private variables
         self._departure_time = False, None
         if arrival_time_at_last_stop is not None:
@@ -90,7 +85,7 @@ class Journey(object):
 
     def departure_time(self) -> Optional[datetime]:
         """
-        :return: the time at which the passenger needs to leave the starting point
+        :return: the time at which the passenger needs to leave the starting point. None if unknown.
         """
         if self._departure_time[0]:
             return self._departure_time[1]
@@ -115,7 +110,7 @@ class Journey(object):
 
     def current_arrival_time(self) -> Optional[datetime]:
         """
-        :return: the time at which the passenger arrives at the current last stop
+        :return: The time at which the passenger arrives at the current last stop. None if unknown.
         """
         if self._arrival_time[0]:
             return self._arrival_time[1]
@@ -147,7 +142,7 @@ class Journey(object):
             self._arrival_time = (True, arr_time)
             return self._arrival_time[1]
 
-    def target_arrival_time(self):
+    def target_arrival_time(self) -> datetime:
         """
         :return: the time at which the passenger wants to arrive at the destination
         """
@@ -155,7 +150,7 @@ class Journey(object):
 
     def duration(self) -> int:
         """
-        :return: The journey duration, in minutes
+        :return: The current journey duration, in minutes
         """
         time_diff = (self.current_arrival_time() - self.departure_time()).seconds
         return (time_diff // 60) + int(time_diff % 60 > 0)
@@ -221,9 +216,11 @@ class Journey(object):
 
 def add_segment_to_journey(j: Journey, new_segment: Union[Footpath, TripSegment]) -> Journey:
     """
+    Copies a Journey and appends a segment to it (the segment should have as a departure stop the arrival stop of the
+    current Journey).
 
-    :param j:
-    :param new_segment:
+    :param j: the Journey to which we want to add a segment
+    :param new_segment: the segment to add to the Journey
     :return: A copy of the journey with the added segment
     """
     new_journey_segments = j.journey_segments.copy()
@@ -276,7 +273,6 @@ def add_segment_to_journey(j: Journey, new_segment: Union[Footpath, TripSegment]
     extended_journey = Journey(
         j.departure_stop,
         j.arrival_stop,
-        j.coord,
         new_journey_segments,
         j.target_arrival_time(),
         j.min_connection_time,

@@ -10,17 +10,13 @@ class Connection(object):
     - :class:`str` transport_type --> type of transport along this trip (e.g., 'train', 'bus', ...)
     - :class:`int` dep_stop --> the index of the departure stop of the connection
     - :class:`int` arr_stop --> the index of the arrival stop of the connection
-    - :class:`float` dep_lat --> The latitude of the departure stop of the connection
-    - :class:`float` dep_lon --> The longitude of the departure stop of the connection
-    - :class:`float` arr_lat --> The latitude of the arrival stop of the connection
-    - :class:`float` arr_lon --> The longitude of the arrival stop of the connection
     - :class:`datetime.datetime` dep_time --> the time at which the connection leaves the departure stop
     - :class:`datetime.datetime` arr_time --> the time at which the connection arrives to the arrival stop
     - :class:`int` distribution_id --> the delay distribution id for this connection
     """
 
-    def __init__(self, trip_id: str, ttype: str, dep_stop: int, arr_stop: int, dep_lat: float, dep_lon: float,
-                 arr_lat: float, arr_lon: float, dep_time: datetime, arr_time: datetime, distribution_id: int):
+    def __init__(self, trip_id: str, ttype: str, dep_stop: int, arr_stop: int, dep_time: datetime, arr_time: datetime,
+                 distribution_id: int):
         # Trip information
         self.trip_id = trip_id
         self.transport_type = ttype
@@ -28,12 +24,6 @@ class Connection(object):
         # Departure and arrival stop indices
         self.dep_stop = dep_stop
         self.arr_stop = arr_stop
-
-        # Departure and arrival stop latitudes and longitudes
-        self.dep_lat = dep_lat
-        self.dep_lon = dep_lon
-        self.arr_lat = arr_lat
-        self.arr_lon = arr_lon
 
         # Departure and arrival times
         self.dep_time = dep_time
@@ -92,30 +82,6 @@ class TripSegment(object):
         :return: the stop at which the user exits the trip
         """
         return self.exit_connection.arr_stop
-
-    def entry_stop_lat(self) -> float:
-        """
-        :return: the latitude of the stop at which the user boards the trip
-        """
-        return self.enter_connection.dep_lat
-
-    def entry_stop_lon(self) -> float:
-        """
-        :return: the longitude of the stop at which the user boards the trip
-        """
-        return self.enter_connection.dep_lon
-
-    def exit_stop_lat(self) -> float:
-        """
-        :return: the latitude of the stop at which the user exits the trip
-        """
-        return self.exit_connection.arr_lat
-
-    def exit_stop_lon(self) -> float:
-        """
-        :return: the longitude of the stop at which the user exits the trip
-        """
-        return self.exit_connection.arr_lon
 
     def delay_distribution_id(self) -> int:
         """
