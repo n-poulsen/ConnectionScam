@@ -46,7 +46,7 @@ def connection_scan(df_connections: pd.DataFrame,
             * 'arrival_time_dt': datetime.datetime. the scheduled arrival time
             * 'trip_id': Any. the ID of the trip to which this connection belongs
             * 'route_desc': str. the mode of transport of the trip (e.g., 'bus', 'train', ...)
-            * 'distribution_id': int. The id of the distribution of delays for this distribution
+            * 'distr_id': int. The id of the distribution of delays for this distribution
     :param footpaths: A sparse matrix containing the footpaths in the map. Row i contains the stops reachable from stop
         i by foot. There should be no self-loops (i <-> i).
     :param delay_distributions: maps distribution delay groups to their distributions
@@ -94,7 +94,7 @@ def connection_scan(df_connections: pd.DataFrame,
         route_desc = row.get('route_desc', 'unknown')
         dep_time = row.get('departure_time_dt')
         arr_time = row.get('arrival_time_dt')
-        distribution_id = row.get('distribution_id', 0)
+        distribution_id = row.get('distr_id')
         c = Connection(row.trip_id, route_desc, row.src_id, row.dst_id, dep_time, arr_time, distribution_id)
 
         # Update the connections that can be taken in the trip
