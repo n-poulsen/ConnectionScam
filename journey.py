@@ -74,6 +74,7 @@ class Journey(object):
         else:
             self._arrival_time = False, None
         self._target_arr_time = target_arrival_time
+        self._walk_time = False, None
 
     def __len__(self):
         return len(self.journey_segments)
@@ -158,6 +159,21 @@ class Journey(object):
         """
         time_diff = (self.current_arrival_time() - self.departure_time()).seconds
         return (time_diff // 60) + int(time_diff % 60 > 0)
+
+    def walk_time(self) -> int:
+        """
+        :return: The amount of time that needs to be spent walking during the journey
+        """
+        if self._walk_time[0]:
+            return self._walk_time[1]
+
+        time: int = 0
+        for segment in self.journey_segments:
+            if isinstance(segment, Footpath):
+                time += (segment.walk_time.seconds // 60)
+
+        self._walk_time = True, time
+        return time
 
     def success_probability(self) -> float:
         """

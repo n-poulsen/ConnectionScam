@@ -91,17 +91,29 @@ def follow_path(journey_so_far: Journey,
                         c_possible_paths: List[JourneyPointer] = journey_pointers.get(c.arr_stop, [])
                         if len(c_possible_paths) > 1:
                             for alt_journey_pointer in c_possible_paths:
-                                # As we arrived by train at this intermediate stop, check that either:
-                                #   * The alternative path starts by walking to another stop
-                                #   * We leave with a train on another line, leaving at least min_connection_time after
-                                #     the train we got off of arrived
-                                alt_journey_starts_with_walk = alt_journey_pointer.footpath is not None
-                                alt_journey_on_catchable_train = (
-                                    (alt_journey_pointer.enter_connection is not None) and
-                                    (alt_journey_pointer.enter_connection.trip_id != c.trip_id) and
-                                    (alt_journey_pointer.enter_connection.dep_time >= c.arr_time + min_connection_time)
+                                # Check that the alternative route takes another trip, as we don't want to get off and
+                                # immediately get back on a trip (if the connections are None than this edge was
+                                # discovered during initialization and it arrives at the destination)
+                                alt_journey_on_another_line = (
+                                        alt_journey_pointer.enter_connection is None or
+                                        alt_journey_pointer.enter_connection.trip_id != c.trip_id
                                 )
-                                if alt_journey_starts_with_walk or alt_journey_on_catchable_train:
+
+                                # Check that there is enough time to catch the alternative connection (walking to
+                                # the alternative stop and connection time)
+                                alt_journey_starts_with_walk = alt_journey_pointer.footpath is not None
+
+                                time_to_alt_stop = min_connection_time
+                                if alt_journey_starts_with_walk:
+                                    time_to_alt_stop += alt_journey_pointer.footpath.walk_time
+
+                                alt_journey_can_be_taken = (
+                                    alt_journey_pointer.enter_connection is None or
+                                    alt_journey_pointer.enter_connection.dep_time >= c.arr_time + time_to_alt_stop
+                                )
+
+                                if alt_journey_on_another_line and alt_journey_can_be_taken:
+
                                     # Get out of the trip at c
                                     alt_trip_segment = TripSegment(p.enter_connection, c)
                                     alt_journey = add_segment_to_journey(
@@ -115,9 +127,9 @@ def follow_path(journey_so_far: Journey,
 
                                     alt_previous_trips_taken = previous_trips_taken
                                     # take a train if you need to
-                                    if alt_journey_on_catchable_train:
+                                    if alt_journey_pointer.enter_connection is not None:
                                         # TODO: this forces us to follow the alternative journey to the end ->
-                                        # TODO: faster to compute but will remove possibilites
+                                        # TODO: faster to compute but will remove possibilities
                                         alt_train_segment = TripSegment(
                                             alt_journey_pointer.enter_connection,
                                             alt_journey_pointer.exit_connection
@@ -168,8 +180,9 @@ def follow_path(journey_so_far: Journey,
 def sort_journeys(journeys: List[Journey]) -> List[Journey]:
     """
     Sorts journeys based on the following criteria:
-        1. Lastest departure time first
-        2. Fewest number of connections first
+        1. Latest departure time
+        2. Shortest walking time
+        2. Fewest number of connections
 
     :param journeys: the journeys to sort
     :return: the sorted journeys
