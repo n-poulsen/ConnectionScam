@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Union, Optional, Iterable, Tuple, Dict, Generator
+from typing import List, Union, Optional, Tuple, Dict
 
 from connections import Footpath, TripSegment
 from distribution import Distribution
@@ -264,6 +264,12 @@ def add_segment_to_journey(j: Journey, new_segment: Union[Footpath, TripSegment]
             last_trip_distribution = j.delay_distributions.get(previous_trip.delay_distribution_id())
             max_delay = (new_segment.departure_time - arrival_time_at_new_connection).seconds // 60
             new_success_probability *= last_trip_distribution.cdf(max_delay)
+
+        # If this is the last connection, compute the probability of arriving there in time
+        if new_segment.exit_connection.arr_stop == j.arrival_stop:
+            trip_dist = j.delay_distributions.get(new_segment.delay_distribution_id())
+            max_delay = (j.target_arrival_time() - new_segment.arrival_time).seconds // 60
+            new_success_probability *= trip_dist.cdf(max_delay)
 
         new_arrival_time_at_last_stop = new_segment.arrival_time
 
