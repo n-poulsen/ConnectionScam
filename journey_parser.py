@@ -168,7 +168,7 @@ def find_resulting_paths(source: int,
     :param min_chance_of_success: the minimum probability of success a journey should have to be kept
     :return: the possible Journeys to get from the source to the destination in time
     """
-    coords = src_coord[0], dst_coord[1], src_coord[0], dst_coord[1]
+    coords = src_coord[0], src_coord[1], dst_coord[0], dst_coord[1]
     start_journey = Journey(source, coords, [], target_arrival, min_connection_time)
     return sort_journeys(follow_path(
         start_journey, destination, journey_pointers, trip_connections, delay_distributions, min_chance_of_success
