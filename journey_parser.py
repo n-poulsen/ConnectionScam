@@ -65,7 +65,10 @@ def follow_path(journey_so_far: Journey,
 
                 # If you've walked to the end, set the flag to true
                 if p.footpath.arr_stop == destination:
-                    paths_from_here += [new_journey]
+                    if new_journey.success_probability() < min_chance_of_success:
+                        return []
+                    else:
+                        paths_from_here += [new_journey]
                     walked_to_end = True
 
             # If you didn't walk to the end, check if you can take alternative routes or how to continue your journey
