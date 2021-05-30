@@ -81,18 +81,32 @@ source = 5
 destination = 3
 
 target_arrival = time(20)
-time_per_connection = 1.0
-paths_to_find = 5
-min_change_of_success = 0.5
+time_per_connection = 1
+journeys_to_find = 5
+min_chance_of_success = 0.5
 journeys_per_stop = 2
+min_times_to_find_source = 1
+max_recursion = 10
 
-results = connection_scan(df_connections, footpaths, delay_distributions, source, destination, target_arrival,
-                          time_per_connection, paths_to_find, min_change_of_success, journeys_per_stop)
+results = connection_scan(
+    df_connections,
+    footpaths,
+    delay_distributions,
+    source,
+    destination,
+    target_arrival,
+    time_per_connection,
+    journeys_to_find,
+    min_chance_of_success,
+    journeys_per_stop,
+    min_times_to_find_source,
+    max_recursion,
+)
 
 print('Results')
 for i, r in enumerate(results):
     print(f'Itinerary {i}: {r.duration()} minutes, '
-          f'{100 * r.success_probability(delay_distributions):.1f}% chance of success')
+          f'{100 * r.success_probability():.1f}% chance of success')
     print(f'  {r}')
     print()
 

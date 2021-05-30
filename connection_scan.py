@@ -28,11 +28,12 @@ def connection_scan(df_connections: pd.DataFrame,
                     source: int,
                     destination: int,
                     target_arrival: datetime,
-                    time_per_connection: float,
+                    time_per_connection: int,
                     journeys_to_find: int,
                     min_chance_of_success: float,
                     journeys_per_stop: int = 2,
-                    min_times_to_find_source: int = 3):
+                    min_times_to_find_source: int = 3,
+                    max_recursion: int = 8):
     """
     Custom Connection Scan Algorithm, which operates in reverse order.
 
@@ -64,6 +65,7 @@ def connection_scan(df_connections: pd.DataFrame,
     :param journeys_per_stop: The maximum number of JourneyPointers to store at each stop.
     :param min_times_to_find_source: The minimum number of times the source must be found before returning the Journeys
         (if possible, as if there are not enough edges in the DataFrame, it will be found fewer times).
+    :param max_recursion: TODO
     :return: A list containing all Journeys found.
     """
     source_found_n_times = 0
@@ -158,7 +160,7 @@ def connection_scan(df_connections: pd.DataFrame,
                 if source_found_n_times >= min_times_to_find_source:
                     paths_found = find_resulting_paths(
                         source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
-                        journey_pointers, trip_connections, delay_distributions, min_chance_of_success
+                        journey_pointers, trip_connections, delay_distributions, min_chance_of_success, max_recursion
                     )
                     if len(paths_found) >= journeys_to_find:
                         return paths_found
@@ -190,13 +192,14 @@ def connection_scan(df_connections: pd.DataFrame,
                     if source_found_n_times >= min_times_to_find_source:
                         paths_found = find_resulting_paths(
                             source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
-                            journey_pointers, trip_connections, delay_distributions, min_chance_of_success
+                            journey_pointers, trip_connections, delay_distributions, min_chance_of_success,
+                            max_recursion
                         )
                         if len(paths_found) >= journeys_to_find:
                             return paths_found
 
     paths_found = find_resulting_paths(
-        source, destination, src_coord, dst_coord, target_arrival, time_per_connection, journey_pointers,
-        trip_connections, delay_distributions, min_chance_of_success
+        source, destination, src_coord, dst_coord, target_arrival, time_per_connection,
+        journey_pointers, trip_connections, delay_distributions, min_chance_of_success, max_recursion
     )
     return paths_found
